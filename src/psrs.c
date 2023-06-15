@@ -9,10 +9,11 @@
 /*
  * TODO
  */
-void psrs(int* array, long long length, int n_threads)
+
+int* multpivot_partition(int* array, long long length, int n_threads)
 {
     int* samples;
-    samples = (int*) malloc(n_threads * n_threads * sizeof(int));
+    samples = (int*)malloc(n_threads * n_threads * sizeof(int));
 
 #pragma omp parallel num_threads(n_threads) shared(array, length, n_threads, samples)
     {
@@ -43,4 +44,23 @@ void psrs(int* array, long long length, int n_threads)
             samples[sample_index] = array[array_index];
         }
     }
+    
+    quicksort(samples, 0, n_threads * n_threads - 1);
+
+    int* pivots;
+    pivots = (int*) malloc((n_threads - 1) * sizeof(int));
+
+    for (int i = 0; i < n_threads - 1; ++i) {
+        pivots[i] = samples[(i + 1) * n_threads + n_threads / 2 - 1];
+    }
+
+    return pivots;
+}
+/*
+ * TODO
+ */
+void psrs(int* array, long long length, int n_threads)
+{
+    int* pivots;
+    pivots = multpivot_partition(array, length, n_threads);
 }
