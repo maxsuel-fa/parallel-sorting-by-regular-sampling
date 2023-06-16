@@ -1,5 +1,5 @@
 #ifndef __PSRS_H__
 #define __PSRS_H__
-int* multpivot_partition(int*, long long, int);
+void regular_sampling(int*, long long, int, int*);
 void psrs(int*, long long, int);
 #endif

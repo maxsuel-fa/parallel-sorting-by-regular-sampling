@@ -1,6 +1,7 @@
-#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
+#include <mpi.h>
 
 #include "../include/psrs.h"
 #include "../include/sorting.h"
@@ -9,8 +10,7 @@
 /*
  * TODO
  */
-
-int* multpivot_partition(int* array, long long length, int n_threads)
+void regular_sampling(int* array, long long length, int n_threads, int* pivots)
 {
     int* samples;
     samples = (int*)malloc(n_threads * n_threads * sizeof(int));
@@ -44,23 +44,59 @@ int* multpivot_partition(int* array, long long length, int n_threads)
             samples[sample_index] = array[array_index];
         }
     }
-    
-    quicksort(samples, 0, n_threads * n_threads - 1);
 
-    int* pivots;
-    pivots = (int*) malloc((n_threads - 1) * sizeof(int));
+    quicksort(samples, 0, n_threads * n_threads - 1);
 
     for (int i = 0; i < n_threads - 1; ++i) {
         pivots[i] = samples[(i + 1) * n_threads + n_threads / 2 - 1];
     }
 
-    return pivots;
+    free(samples);
 }
+
 /*
  * TODO
  */
 void psrs(int* array, long long length, int n_threads)
 {
+
     int* pivots;
-    pivots = multpivot_partition(array, length, n_threads);
+    pivots = (int*) malloc((n_threads - 1) * sizeof(int));
+    int rank;
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (!rank) {
+        regular_sampling(array, length, n_threads, pivots);
+    }
+    MPI_Bcast(pivots, n_threads - 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    int comm_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+    
+    int* sendc;
+    sendc = (int*) malloc(comm_size * sizeof(int));
+
+    for (int i = 0; i < comm_size; ++i) {
+        sendc[i] = length / n_threads;
+        if (i < length % n_threads) {
+            ++(sendc[i]);
+        }
+    }
+
+    int* displacement;
+    displacement = (int*) malloc(comm_size * sizeof(int));
+
+    displacement[0] = 0;
+    for (int i = 1; i < comm_size; ++i) {
+        displacement[i] = displacement[i - 1] + sendc[i - 1];
+    }
+
+    MPI_Scatterv(array, sendc, displacement, MPI_INT,\
+            array, sendc[rank], MPI_INT, 0, MPI_COMM_WORLD);
+
+    printf("rank %d pivots: ", rank);
+    for (long long i = 0; i < n_threads -1; ++i) {
+        printf("%d ", pivots[i]);
+    }
+    printf("\n");
 }
