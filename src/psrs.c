@@ -165,6 +165,9 @@ void multpivot_partition(int* array, long long length, int* pivots,
     get_displacement(sendcount, displacement);
 }
 
+/*
+ * TODO
+ */
 void get_displacement(int* sendc, int* displacement)
 {
     int comm_size;

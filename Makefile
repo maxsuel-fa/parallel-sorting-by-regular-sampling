@@ -31,12 +31,12 @@ $(TARGET): $(OBJS)
 # Cleaning object files and executable
 clean:
 	$(RM) $(OBJS) $(TARGET)
-s
+
 test:
 	./$(TARGET) < input_file > test/output_file
 	diff test/output_file test/expected_output_file
 
 # Running the psrs
 run:
-	mpirun -np $(NP) $(TARGET)
+	mpirun -np $(NP) $(TARGET) $(N)
 
