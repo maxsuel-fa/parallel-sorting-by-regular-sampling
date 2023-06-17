@@ -15,7 +15,7 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
     int* samples;
     samples = (int*)malloc(n_threads * n_threads * sizeof(int));
 
-#pragma omp parallel num_threads(n_threads) shared(array, length, n_threads, samples)
+#pragma omp parallel shared(array, length, n_threads, samples) num_threads(n_threads)
     {
         int thread_id = omp_get_thread_num();
         long long low, high;
@@ -59,7 +59,6 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
  */
 void psrs(int* array, long long length, int n_threads)
 {
-
     int* pivots;
     pivots = (int*)malloc((n_threads - 1) * sizeof(int));
 
@@ -68,15 +67,6 @@ void psrs(int* array, long long length, int n_threads)
 
     if (!rank) {
         regular_sampling(array, length, n_threads, pivots);
-        for (long long i = 0; i < length; ++i) {
-            printf("%d ", array[i]);
-        }
-
-        printf("\n");
-        for (int i = 0; i < n_threads - 1; ++i) {
-            printf("%d ", pivots[i]);
-        }
-        printf("\n");
     }
     MPI_Bcast(pivots, n_threads - 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -87,8 +77,8 @@ void psrs(int* array, long long length, int n_threads)
     sendc = (int*)malloc(comm_size * sizeof(int));
 
     for (int i = 0; i < comm_size; ++i) {
-        sendc[i] = length / n_threads;
-        if (i < length % n_threads) {
+        sendc[i] = length / comm_size;
+        if (i < length % comm_size) {
             ++(sendc[i]);
         }
     }
@@ -109,34 +99,26 @@ void psrs(int* array, long long length, int n_threads)
 
     int* recvdisp;
     recvdisp = (int*)malloc((comm_size + 1) * sizeof(int));
-
     get_displacement(recvc, recvdisp);
 
+    int* merged_array;
+    merged_array = (int*)malloc((recvdisp[comm_size]) * sizeof(int));
+
     MPI_Alltoallv(array, sendc, displacement, MPI_INT,
-        array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
+        merged_array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
 
-    /*printf("rank %d array: ", rank);
-    for (long long i = 0; i < recvdisp[comm_size]; ++i) {
-        printf("%d ", array[i]);
-    }
-    printf("\n");
-    printf("rank %d sendc: ", rank);
-    for (long long i = 0; i < comm_size; ++i) {
-        printf("%d ", sendc[i]);
-    }
-    printf("\n");
-    printf("rank %d recvc: ", rank);
-    for (long long i = 0; i < comm_size; ++i) {
-        printf("%d ", recvc[i]);
-    }
-    printf("\n");
+    quicksort(merged_array, 0, recvdisp[comm_size] - 1);
+    
+    int* merged_lens;
+    merged_lens = (int*)malloc((comm_size) * sizeof(int));
 
-    printf("rank %d disp: ", rank);
-    for (long long i = 0; i < comm_size; ++i) {
-        printf("%d ", recvdisp[i]);
-    }
+    MPI_Gather(&(recvdisp[comm_size]), 1, MPI_INT,
+        merged_lens, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    
+    get_displacement(merged_lens, displacement);
 
-    printf("\n");*/
+    MPI_Gatherv(merged_array, recvdisp[comm_size], MPI_INT,
+        array, merged_lens, displacement, MPI_INT, 0, MPI_COMM_WORLD);
 }
 
 /*
@@ -186,3 +168,4 @@ void get_displacement(int* sendc, int* displacement)
         displacement[i] = displacement[i - 1] + sendc[i - 1];
     }
 }
+
