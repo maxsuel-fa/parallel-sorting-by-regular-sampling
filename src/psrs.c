@@ -107,18 +107,25 @@ void psrs(int* array, long long length, int n_threads)
     MPI_Alltoallv(array, sendc, displacement, MPI_INT,
         merged_array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
 
-    quicksort(merged_array, 0, recvdisp[comm_size] - 1);
-    
     int* merged_lens;
     merged_lens = (int*)malloc((comm_size) * sizeof(int));
 
     MPI_Gather(&(recvdisp[comm_size]), 1, MPI_INT,
         merged_lens, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    
+
     get_displacement(merged_lens, displacement);
 
     MPI_Gatherv(merged_array, recvdisp[comm_size], MPI_INT,
         array, merged_lens, displacement, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (!rank) {
+#pragma omp parallel shared(array, displacement) num_threads(n_threads)
+        {
+            int thread_id;
+            thread_id = omp_get_thread_num();
+            quicksort(array, displacement[thread_id], displacement[thread_id + 1] - 1);
+        }
+    }
 }
 
 /*
@@ -168,4 +175,3 @@ void get_displacement(int* sendc, int* displacement)
         displacement[i] = displacement[i - 1] + sendc[i - 1];
     }
 }
-
