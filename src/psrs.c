@@ -15,26 +15,13 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
     int* samples;
     samples = (int*)malloc(n_threads * n_threads * sizeof(int));
 
-#pragma omp parallel shared(array, length, n_threads, samples) num_threads(n_threads)
+#pragma omp parallel shared(length, n_threads, samples) num_threads(n_threads)
     {
-        int thread_id = omp_get_thread_num();
+        int thread_id;
+        thread_id = omp_get_thread_num();
+
         long long low, high;
-
-        low = thread_id * (length / n_threads);
-        high = (thread_id + 1) * (length / n_threads) - 1;
-
-        if (length % n_threads) {
-            if (thread_id < (length % n_threads)) {
-                low += thread_id;
-                high += thread_id + 1;
-            } else {
-                low += length % n_threads;
-                high += length % n_threads;
-            }
-
-            low = min(low, length - 1);
-            high = min(high, length - 1);
-        }
+        get_boundaries(length, n_threads, &low, &high);
         quicksort(array, low, high);
 
         long long sample_index, array_index;
@@ -65,13 +52,13 @@ void psrs(int* array, long long length, int n_threads)
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    if (!rank) {
-        regular_sampling(array, length, n_threads, pivots);
-    }
-    MPI_Bcast(pivots, n_threads - 1, MPI_INT, 0, MPI_COMM_WORLD);
-
     int comm_size;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+
+    if (!rank) {
+        regular_sampling(array, length, comm_size, pivots);
+    }
+    MPI_Bcast(pivots, comm_size - 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     int* sendc;
     sendc = (int*)malloc(comm_size * sizeof(int));
@@ -90,7 +77,7 @@ void psrs(int* array, long long length, int n_threads)
     MPI_Scatterv(array, sendc, displacement, MPI_INT,
         array, sendc[rank], MPI_INT, 0, MPI_COMM_WORLD);
 
-    multpivot_partition(array, sendc[rank], pivots, displacement, sendc);
+    multpivot_partition(array, sendc[rank], pivots, displacement, sendc, n_threads);
 
     int* recvc;
     recvc = (int*)malloc(comm_size * sizeof(int));
@@ -107,7 +94,9 @@ void psrs(int* array, long long length, int n_threads)
     MPI_Alltoallv(array, sendc, displacement, MPI_INT,
         merged_array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
 
-    int* merged_lens;
+    quicksort(merged_array, 0, recvdisp[comm_size] - 1);
+    
+    int* merged_lens;    
     merged_lens = (int*)malloc((comm_size) * sizeof(int));
 
     MPI_Gather(&(recvdisp[comm_size]), 1, MPI_INT,
@@ -117,22 +106,13 @@ void psrs(int* array, long long length, int n_threads)
 
     MPI_Gatherv(merged_array, recvdisp[comm_size], MPI_INT,
         array, merged_lens, displacement, MPI_INT, 0, MPI_COMM_WORLD);
-
-    if (!rank) {
-#pragma omp parallel shared(array, displacement) num_threads(n_threads)
-        {
-            int thread_id;
-            thread_id = omp_get_thread_num();
-            quicksort(array, displacement[thread_id], displacement[thread_id + 1] - 1);
-        }
-    }
 }
 
 /*
  * TODO
  */
 void multpivot_partition(int* array, long long length, int* pivots,
-    int* displacement, int* sendcount)
+    int* displacement, int* sendcount, int n_threads)
 {
     int comm_size;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -141,30 +121,37 @@ void multpivot_partition(int* array, long long length, int* pivots,
         sendcount[i] = 0;
     }
 
-    int pivot_index;
-    pivot_index = 0;
-
-    long long array_index;
-    array_index = 0;
-
-    while (array_index < length && pivot_index < comm_size - 1) {
-        if (array[array_index] < pivots[pivot_index]) {
-            ++(sendcount[pivot_index]);
-        } else {
-            --array_index;
-            ++pivot_index;
+#pragma omp parallel shared(sendcount, pivots, comm_size, n_threads) num_threads(n_threads)
+    {
+        int pivot_index;
+        pivot_index = 0;
+        
+        long long array_index, sub_length;
+        get_boundaries(length, n_threads, &array_index, &sub_length);
+        
+        while (array_index <= sub_length && pivot_index < comm_size - 1) {
+            if (array[array_index] < pivots[pivot_index]) { 
+               #pragma omp atomic update
+                ++(sendcount[pivot_index]);
+                ++array_index;
+            } else {
+                ++pivot_index;
+            }
         }
-        array_index++;
-    }
 
-    while (array_index < length) {
-        ++(sendcount[pivot_index]);
-        ++array_index;
+        while (array_index <= sub_length) {
+            #pragma omp atomic update
+            ++(sendcount[pivot_index]);
+            ++array_index;
+        }
     }
-
+    
     get_displacement(sendcount, displacement);
 }
 
+/*
+ * TODO
+ */
 void get_displacement(int* sendc, int* displacement)
 {
     int comm_size;
@@ -175,3 +162,29 @@ void get_displacement(int* sendc, int* displacement)
         displacement[i] = displacement[i - 1] + sendc[i - 1];
     }
 }
+
+/*
+ * TODO
+ */
+void get_boundaries(long long length, int n_threads,
+    long long* low, long long* high)
+{
+    int thread_id = omp_get_thread_num();
+
+    *low = thread_id * (length / n_threads);
+    *high = (thread_id + 1) * (length / n_threads) - 1;
+
+    if (length % n_threads) {
+        if (thread_id < (length % n_threads)) {
+            *low += thread_id;
+            *high += (thread_id + 1);
+        } else {
+            *low += length % n_threads;
+            *high += length % n_threads;
+        }
+
+        *low = min(*low, length - 1);
+        *high = min(*high, length - 1);
+    }
+}
+
