@@ -35,7 +35,7 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
             low = min(low, length - 1);
             high = min(high, length - 1);
         }
-        quicksort(array, low, high);
+        merge_sort(array, low, high);
 
         long long sample_index, array_index;
         for (long long i = 0; i < n_threads; ++i) {
@@ -45,7 +45,7 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
         }
     }
 
-    quicksort(samples, 0, n_threads * n_threads - 1);
+    merge_sort(samples, 0, n_threads * n_threads - 1);
 
     for (int i = 0; i < n_threads - 1; ++i) {
         pivots[i] = samples[(i + 1) * n_threads + n_threads / 2 - 1];
@@ -123,7 +123,7 @@ void psrs(int* array, long long length, int n_threads)
         {
             int thread_id;
             thread_id = omp_get_thread_num();
-            quicksort(array, displacement[thread_id], displacement[thread_id + 1] - 1);
+            merge_sort(array, displacement[thread_id], displacement[thread_id + 1] - 1);
         }
     }
 }
