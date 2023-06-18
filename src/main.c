@@ -17,16 +17,18 @@ int main(int argc, char** argv)
     int* input;
     input = (int*)malloc(atoi(argv[1]) * sizeof(int));
 
+    double init_time;
     if (!rank) {
         random_array(input, atoi(argv[1]));
+        init_time = MPI_Wtime();
     }
 
     psrs(input, atoi(argv[1]), N_THREADS);
 
     if (!rank) {
-        for (long long i = 0; i < atoi(argv[1]); ++i) {
-            printf("%d ", input[i]);
-        }
+        //for (long long i = 0; i < atoi(argv[1]); ++i) {
+            printf("%lf\n", MPI_Wtime() - init_time);
+        //}
     }
 
     MPI_Finalize();
