@@ -22,8 +22,8 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
 
         long long low, high;
         get_boundaries(length, n_threads, &low, &high);
-        quicksort(array, low, high);
-
+        merge_sort(array, low, high);
+        
         long long sample_index, array_index;
         for (long long i = 0; i < n_threads; ++i) {
             sample_index = i + thread_id * n_threads;
@@ -31,8 +31,7 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
             samples[sample_index] = array[array_index];
         }
     }
-
-    quicksort(samples, 0, n_threads * n_threads - 1);
+    merge_sort(samples, 0, n_threads * n_threads - 1);
 
     for (int i = 0; i < n_threads - 1; ++i) {
         pivots[i] = samples[(i + 1) * n_threads + n_threads / 2 - 1];
@@ -94,7 +93,7 @@ void psrs(int* array, long long length, int n_threads)
     MPI_Alltoallv(array, sendc, displacement, MPI_INT,
         merged_array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
 
-    quicksort(merged_array, 0, recvdisp[comm_size] - 1);
+    merge_sort(merged_array, 0, recvdisp[comm_size] - 1);
     
     int* merged_lens;    
     merged_lens = (int*)malloc((comm_size) * sizeof(int));
@@ -111,7 +110,7 @@ void psrs(int* array, long long length, int n_threads)
 /*
  * TODO
  */
-void multpivot_partition(int* array, long long length, int* pivots,
+void multpivot_partition(int* array, long long length, int* pivots, // pass comm_size as argument
     int* displacement, int* sendcount, int n_threads)
 {
     int comm_size;
@@ -152,7 +151,7 @@ void multpivot_partition(int* array, long long length, int* pivots,
 /*
  * TODO
  */
-void get_displacement(int* sendc, int* displacement)
+void get_displacement(int* sendc, int* displacement) // Pass comm_size as argument
 {
     int comm_size;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -166,7 +165,7 @@ void get_displacement(int* sendc, int* displacement)
 /*
  * TODO
  */
-void get_boundaries(long long length, int n_threads,
+void get_boundaries(long long length, int n_threads, // Pass thread_id as argument
     long long* low, long long* high)
 {
     int thread_id = omp_get_thread_num();
@@ -187,4 +186,3 @@ void get_boundaries(long long length, int n_threads,
         *high = min(*high, length - 1);
     }
 }
-
