@@ -15,7 +15,7 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
     int* samples;
     samples = (int*)malloc(n_threads * n_threads * sizeof(int));
 
-#pragma omp parallel shared(length, n_threads, samples) num_threads(n_threads)
+#pragma omp parallel shared(array, length, n_threads, samples) num_threads(n_threads)
     {
         int thread_id;
         thread_id = omp_get_thread_num();

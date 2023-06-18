@@ -4,6 +4,7 @@
 
 #include "../include/psrs.h"
 #include "../include/utils.h"
+#include "../include/sorting.h"
 
 #define N_THREADS 3
 
@@ -22,10 +23,15 @@ int main(int argc, char** argv)
     if (!rank) {
         random_array(input, atoi(argv[1]));
         init_time = MPI_Wtime();
+        quicksort(input, 0, atoi(argv[1]) - 1);
+        printf("seq time: %lf\n", MPI_Wtime() - init_time);
+        random_array(input, atoi(argv[1]));
     }
+
+    init_time = MPI_Wtime();
     psrs(input, atoi(argv[1]), N_THREADS);
     if (!rank) {
-        printf("time: %lf\n", MPI_Wtime() - init_time);
+        printf("par time: %lf\n", MPI_Wtime() - init_time);
         /*for (long long i = 0; i < atoi(argv[1]); ++i) {
             printf("%d ", input[i]);
         }*/
