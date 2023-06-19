@@ -119,8 +119,9 @@ void multpivot_partition(int* array, long long length, int* pivots, // pass comm
     for (int i = 0; i < comm_size; ++i) {
         sendcount[i] = 0;
     }
-
-#pragma omp parallel shared(sendcount, pivots, comm_size, n_threads) num_threads(n_threads)
+    
+    n_threads = min(n_threads, length);
+#pragma omp parallel shared(array, sendcount, pivots, comm_size, n_threads) num_threads(n_threads)
     {
         int pivot_index;
         pivot_index = 0;
