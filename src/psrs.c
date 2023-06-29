@@ -8,7 +8,12 @@
 #include "../include/utils.h"
 
 /*
- * TODO
+ * @brief Perform regular sampling on the input array to select pivots for partitioning.
+ *
+ * @param array The input array to be sampled.
+ * @param length The length of the input array.
+ * @param n_threads The number of threads to be used for parallel execution.
+ * @param pivots An array to store the selected pivots.
  */
 void regular_sampling(int* array, long long length, int n_threads, int* pivots)
 {
@@ -41,7 +46,11 @@ void regular_sampling(int* array, long long length, int n_threads, int* pivots)
 }
 
 /*
- * TODO
+ * @brief Perform Parallel Sorting by Regular Sampling (PSRS) algorithm on the input array.
+ *
+ * @param array The input array to be sorted.
+ * @param length The length of the input array.
+ * @param n_threads The number of threads to be used for parallel execution.
  */
 void psrs(int* array, long long length, int n_threads)
 {
@@ -108,7 +117,14 @@ void psrs(int* array, long long length, int n_threads)
 }
 
 /*
- * TODO
+ * @brief Perform multi-pivot partitioning of the input array.
+ *
+ * @param array The input array to be partitioned.
+ * @param length The length of the input array.
+ * @param pivots An array containing the selected pivots.
+ * @param displacement An array to store the displacement values for data distribution.
+ * @param sendcount An array to store the number of elements to be sent to each process.
+ * @param n_threads The number of threads to be used for parallel execution.
  */
 void multpivot_partition(int* array, long long length, int* pivots, // pass comm_size as argument
     int* displacement, int* sendcount, int n_threads)
@@ -150,7 +166,10 @@ void multpivot_partition(int* array, long long length, int* pivots, // pass comm
 }
 
 /*
- * TODO
+ * @brief Calculate the displacement values for data distribution based on the send counts.
+ *
+ * @param sendc An array containing the number of elements to be sent to each process.
+ * @param displacement An array to store the displacement values.
  */
 void get_displacement(int* sendc, int* displacement) // Pass comm_size as argument
 {
@@ -164,7 +183,12 @@ void get_displacement(int* sendc, int* displacement) // Pass comm_size as argume
 }
 
 /*
- * TODO
+ * @brief Calculate the boundaries (low and high) for a thread to process in the input array.
+ *
+ * @param length The length of the input array.
+ * @param n_threads The total number of threads.
+ * @param low Pointer to store the lower bound of the thread's processing range.
+ * @param high Pointer to store the upper bound of the thread's processing range.
  */
 void get_boundaries(long long length, int n_threads, // Pass thread_id as argument
     long long* low, long long* high)
