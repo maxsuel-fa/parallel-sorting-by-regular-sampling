@@ -1,7 +1,28 @@
 # Parallel Sorting by Regular Sampling
 
-TODO
+## Compilation
 
+To compile the psrs, symply run the following command in the terminal:
+
+```
+make
+```
+
+## Running
+
+To run the psrs, symply run the following command in the terminal:
+
+```
+make run NP=<P> N=<N>
+```
+
+or
+
+```
+mpirun -np <P> psrs <N>
+```
+
+where P is the number of process you want to use and N is the array length.
 
 ## Authors
 
