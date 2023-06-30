@@ -82,10 +82,12 @@ void psrs(int* array, long long length, int n_threads)
     displacement = (int*)malloc((comm_size + 1) * sizeof(int));
     get_displacement(sendc, displacement);
 
-    MPI_Scatterv(array, sendc, displacement, MPI_INT,
-        array, sendc[rank], MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(array, sendc, displacement, MPI_INT,\
+            array, sendc[rank], MPI_INT, 0, MPI_COMM_WORLD);
 
     multpivot_partition(array, sendc[rank], pivots, displacement, sendc, n_threads);
+
+    free(pivots);
 
     int* recvc;
     recvc = (int*)malloc(comm_size * sizeof(int));
@@ -99,21 +101,28 @@ void psrs(int* array, long long length, int n_threads)
     int* merged_array;
     merged_array = (int*)malloc((recvdisp[comm_size]) * sizeof(int));
 
-    MPI_Alltoallv(array, sendc, displacement, MPI_INT,
-        merged_array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
+    MPI_Alltoallv(array, sendc, displacement, MPI_INT,\
+            merged_array, recvc, recvdisp, MPI_INT, MPI_COMM_WORLD);
 
     merge_sort(merged_array, 0, recvdisp[comm_size] - 1);
     
     int* merged_lens;    
     merged_lens = (int*)malloc((comm_size) * sizeof(int));
 
-    MPI_Gather(&(recvdisp[comm_size]), 1, MPI_INT,
-        merged_lens, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(&(recvdisp[comm_size]), 1, MPI_INT,\
+            merged_lens, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     get_displacement(merged_lens, displacement);
 
-    MPI_Gatherv(merged_array, recvdisp[comm_size], MPI_INT,
-        array, merged_lens, displacement, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(merged_array, recvdisp[comm_size], MPI_INT,\
+            array, merged_lens, displacement, MPI_INT, 0, MPI_COMM_WORLD);
+
+    free(sendc);
+    free(displacement);
+    free(recvc) ;
+    free(recvdisp);
+    free(merged_lens);
+    free(merged_array);
 }
 
 /*
@@ -126,7 +135,7 @@ void psrs(int* array, long long length, int n_threads)
  * @param sendcount An array to store the number of elements to be sent to each process.
  * @param n_threads The number of threads to be used for parallel execution.
  */
-void multpivot_partition(int* array, long long length, int* pivots, // pass comm_size as argument
+void multpivot_partition(int* array, long long length, int* pivots,\
     int* displacement, int* sendcount, int n_threads)
 {
     int comm_size;
@@ -171,7 +180,7 @@ void multpivot_partition(int* array, long long length, int* pivots, // pass comm
  * @param sendc An array containing the number of elements to be sent to each process.
  * @param displacement An array to store the displacement values.
  */
-void get_displacement(int* sendc, int* displacement) // Pass comm_size as argument
+void get_displacement(int* sendc, int* displacement)
 {
     int comm_size;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -190,7 +199,7 @@ void get_displacement(int* sendc, int* displacement) // Pass comm_size as argume
  * @param low Pointer to store the lower bound of the thread's processing range.
  * @param high Pointer to store the upper bound of the thread's processing range.
  */
-void get_boundaries(long long length, int n_threads, // Pass thread_id as argument
+void get_boundaries(long long length, int n_threads,\
     long long* low, long long* high)
 {
     int thread_id = omp_get_thread_num();

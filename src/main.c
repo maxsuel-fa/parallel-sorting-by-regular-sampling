@@ -31,6 +31,8 @@ int main(int argc, char** argv)
         printf("%d.\n", input[atoi(argv[1]) - 1]);
     }
 
+    free(input);
+    
     MPI_Finalize();
     return 0;
 }
