@@ -5,7 +5,11 @@
 #include "../include/utils.h"
 
 /*
- * TODO
+ * @brief Computes the minimum value between two numbers.
+ *
+ * @param first The first number.
+ * @param second The second number.
+ * @return The minimum value between first and second.
  */
 long long min(long long first, long long second)
 {
@@ -13,7 +17,10 @@ long long min(long long first, long long second)
 }
 
 /*
- * TODO
+ * @brief Fills an array with random values.
+ *
+ * @param array The array to be filled.
+ * @param length The length of the array.
  */
 void random_array(int* array, long long length)
 {

@@ -19,22 +19,16 @@ int main(int argc, char** argv)
 
     int* input;
     input = (int*)malloc(atoi(argv[1]) * sizeof(int));
-    double init_time;
     if (!rank) {
-        random_array(input, atoi(argv[1]));
-        init_time = MPI_Wtime();
-        quicksort(input, 0, atoi(argv[1]) - 1);
-        printf("seq time: %lf\n", MPI_Wtime() - init_time);
         random_array(input, atoi(argv[1]));
     }
 
-    init_time = MPI_Wtime();
     psrs(input, atoi(argv[1]), N_THREADS);
     if (!rank) {
-        printf("par time: %lf\n", MPI_Wtime() - init_time);
-        /*for (long long i = 0; i < atoi(argv[1]); ++i) {
-            printf("%d ", input[i]);
-        }*/
+        for (long long i = 0; i < atoi(argv[1]) - 1; ++i) {
+            printf("%d, ", input[i]);
+        }
+        printf("%d.\n", input[atoi(argv[1]) - 1]);
     }
 
     MPI_Finalize();
