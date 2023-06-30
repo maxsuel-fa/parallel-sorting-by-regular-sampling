@@ -6,7 +6,7 @@ OMPFLAG = -fopenmp
 # Directories
 SRC_DIR = src
 OBJ_DIR = obj
-BIN_DIR = bin
+BIN_DIR = .
 
 # Source files
 SRCS = $(wildcard $(SRC_DIR)/*.c)
@@ -15,7 +15,7 @@ SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 # Executable
-TARGET = $(BIN_DIR)/main
+TARGET = $(BIN_DIR)/psrs
 
 # Default target
 all: $(TARGET)
